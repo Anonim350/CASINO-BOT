@@ -2,124 +2,343 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Казино</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Casino Web App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #0a0a0a 100%);
+            font-family: Arial, sans-serif;
+            background: radial-gradient(circle at top, #2a0000, #000);
             color: #fff; min-height: 100vh; padding: 16px;
-            display: flex; flex-direction: column; align-items: center;
+            display: flex; flex-direction: column; align-items: center; overflow-x: hidden;
         }
+        
+        /* Стеклянный стиль */
         .glass {
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            padding: 20px; width: 100%; max-width: 400px; margin-bottom: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 20px; width: 100%; max-width: 400px; margin-bottom: 15px;
+            text-align: center;
         }
-        h1 { font-size: 22px; text-align: center; margin-bottom: 8px; color: #ff4444; }
-        .balance { text-align: center; font-size: 28px; font-weight: bold; color: #fff; margin: 8px 0; }
-        .sub { text-align: center; font-size: 12px; color: #888; }
-        .game-btn {
-            display: block; width: 100%; padding: 14px;
-            margin: 8px 0; border: none; border-radius: 14px;
-            background: rgba(255, 68, 68, 0.15);
-            backdrop-filter: blur(10px);
-            color: #fff; font-size: 16px; font-weight: 600;
-            border: 1px solid rgba(255, 68, 68, 0.3);
+
+        .hidden { display: none !important; }
+        h1 { font-size: 24px; color: #ff3333; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; text-shadow: 0 0 10px rgba(255,0,0,0.5); }
+        
+        /* Кнопки меню */
+        .menu-btn {
+            display: block; width: 100%; padding: 16px; margin: 10px 0;
+            border: none; border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.2), rgba(255, 0, 0, 0.1));
+            color: #fff; font-size: 18px; font-weight: bold;
+            border: 1px solid rgba(255, 51, 51, 0.4);
             cursor: pointer; transition: all 0.2s;
         }
-        .game-btn:active { background: rgba(255, 68, 68, 0.35); transform: scale(0.98); }
-        .result { text-align: center; font-size: 18px; margin: 16px 0; min-height: 30px; }
-        .back-btn { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
-        .hidden { display: none; }
+        .menu-btn:active { transform: scale(0.95); background: rgba(255, 51, 51, 0.4); }
+        .back-btn { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); margin-top: 15px;}
+
+        /* РУЛЕТКА */
+        .roulette-container { position: relative; width: 280px; height: 280px; margin: 20px auto; }
+        .wheel {
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 8px solid #333; position: relative; overflow: hidden;
+            transition: transform 4s cubic-bezier(0.25, 0.1, 0.15, 1);
+            background: conic-gradient(
+                #ff0000 0deg 180deg, 
+                #000000 180deg 350deg, 
+                #00ff00 350deg 360deg
+            );
+            box-shadow: 0 0 20px rgba(255,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .arrow {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 15px solid transparent;
+            border-right: 15px solid transparent; border-top: 25px solid #fff;
+            z-index: 10; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+        }
+        .center-dot {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 40px; height: 40px; background: #111; border-radius: 50%;
+            border: 3px solid #555; z-index: 5;
+        }
+
+        /* РАКЕТА */
+        .rocket-area { height: 200px; position: relative; overflow: hidden; border-bottom: 2px solid #333; margin-bottom: 15px; }
+        .rocket {
+            position: absolute; bottom: 0; left: 20px; font-size: 40px;
+            transition: bottom 2s linear, left 2s linear, transform 0.5s;
+        }
+        .crash-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 30px; color: #ff3333; font-weight: bold; opacity: 0; transition: opacity 0.3s; }
+
+        /* МИНЫ */
+        .mines-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
+        .mine-cell {
+            aspect-ratio: 1; background: rgba(255,255,255,0.1); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            cursor: pointer; transition: 0.2s;
+        }
+        .mine-cell:active { background: rgba(255,255,255,0.2); }
+        .mine-cell.revealed { background: rgba(255, 51, 51, 0.3); border: 1px solid #ff3333; pointer-events: none; }
+
+        /* Общие кнопки */
+        .action-btn { background: #ff3333; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .action-btn:active { background: #cc0000; }
     </style>
 </head>
 <body>
-    <div class="glass" id="mainMenu">
-        <h1>🔥 КАЗИНО</h1>
-        <div class="sub">Виртуальные деньги. Без вывода.</div>
-        <div class="balance" id="balanceDisplay">Баланс: —</div>
-        <button class="game-btn" onclick="play('rocket')">🚀 Ракета</button>
-        <button class="game-btn" onclick="play('mines3')">💣 Мины (3)</button>
-        <button class="game-btn" onclick="play('mines6')">💣 Мины (6)</button>
-        <button class="game-btn" onclick="play('mines12')">💣 Мины (12)</button>
-        <button class="game-btn" onclick="play('pickaxe')">⛏️ Кирка</button>
-        <button class="game-btn" onclick="play('777')">🔞 777</button>
-        <button class="game-btn back-btn" onclick="closeApp()">🔙 Закрыть</button>
+
+    <!-- Главное меню -->
+    <div class="glass" id="menu">
+        <h1>🔥 Казино</h1>
+        <p style="color: #888; margin-bottom: 20px; font-size: 14px;">Выбери игру</p>
+        <button class="menu-btn" onclick="openGame('roulette')">🎰 Рулетка</button>
+        <button class="menu-btn" onclick="openGame('rocket')">🚀 Ракета</button>
+        <button class="menu-btn" onclick="openGame('mines')">💣 Мины</button>
+        <button class="menu-btn back-btn" onclick="closeApp()">❌ Закрыть</button>
     </div>
 
-    <div class="glass hidden" id="resultScreen">
-        <div class="result" id="resultText"></div>
-        <button class="game-btn" onclick="backToMenu()">🔙 Назад</button>
+    <!-- РУЛЕТКА -->
+    <div class="glass hidden" id="game-roulette">
+        <h1>🎰 Рулетка</h1>
+        <div class="roulette-container">
+            <div class="arrow"></div>
+            <div class="wheel" id="wheel"></div>
+            <div class="center-dot"></div>
+        </div>
+        <div id="roulette-result" style="font-size: 20px; font-weight: bold; margin: 10px 0; min-height: 25px;"></div>
+        <button class="action-btn" id="spin-btn" onclick="spinRoulette()">Крутить (15 ₽)</button>
+        <button class="menu-btn back-btn" onclick="backToMenu()">🔙 Назад</button>
+    </div>
+
+    <!-- РАКЕТА -->
+    <div class="glass hidden" id="game-rocket">
+        <h1>🚀 Ракета</h1>
+        <div class="rocket-area">
+            <div class="rocket" id="rocket-icon">🚀</div>
+            <div class="crash-text" id="crash-text">КРАШ! 💥</div>
+        </div>
+        <div id="rocket-result" style="font-size: 20px; font-weight: bold; margin: 10px 0; min-height: 25px;"></div>
+        <button class="action-btn" id="rocket-btn" onclick="playRocket()">Запустить (15 ₽)</button>
+        <button class="menu-btn back-btn" onclick="backToMenu()">🔙 Назад</button>
+    </div>
+
+    <!-- МИНЫ -->
+    <div class="glass hidden" id="game-mines">
+        <h1>💣 Мины</h1>
+        <div style="margin-bottom: 10px;">Открывай клетки. Бомба = проигрыш.</div>
+        <div class="mines-grid" id="mines-grid"></div>
+        <div id="mines-result" style="font-size: 20px; font-weight: bold; margin: 15px 0; min-height: 25px;"></div>
+        <button class="action-btn" id="mines-btn" onclick="startMines()">Начать (15 ₽)</button>
+        <button class="menu-btn back-btn" onclick="backToMenu()">🔙 Назад</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
+        tg.setHeaderColor('#000000');
 
-        // Показываем имя пользователя (если доступно)
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const name = tg.initDataUnsafe.user.first_name || 'Игрок';
-            document.querySelector('.sub').textContent = `Привет, ${name}!`;
-        }
-
-        function play(game) {
-            let result = {};
-            let text = '';
-
-            if (game === 'rocket') {
-                const win = Math.random() < 0.45;
-                result = { game: 'rocket', win: win };
-                text = win ? '🚀 УСПЕХ! +30 ₽' : '💥 КРАШ! -15 ₽';
-            } else if (game.startsWith('mines')) {
-                const mines = parseInt(game.replace('mines', ''));
-                const loseChance = {3: 0.12, 6: 0.24, 9: 0.36, 12: 0.48}[mines];
-                const win = Math.random() >= loseChance;
-                const mult = {3: 2, 6: 3, 9: 4, 12: 5}[mines];
-                result = { game: 'mines', mines: mines, win: win };
-                text = win ? `💣 Чисто! +${15*mult} ₽` : '💥 Мина! -15 ₽';
-            } else if (game === 'pickaxe') {
-                const roll = Math.random() * 100;
-                let reward = 0, name = 'Земля';
-                if (roll < 40) { name = '🌍 Земля'; reward = 0; }
-                else if (roll < 65) { name = '🪨 Камень'; reward = 0; }
-                else if (roll < 80) { name = '⚫ Уголь'; reward = 20; }
-                else if (roll < 90) { name = '🔩 Железо'; reward = 30; }
-                else if (roll < 97) { name = '🟡 Золото'; reward = 50; }
-                else { name = '💎 Алмаз'; reward = 100; }
-                result = { game: 'pickaxe', reward: reward };
-                text = `⛏️ ${name}: ${reward > 0 ? '+' + reward + ' ₽' : 'пусто'}`;
-            } else if (game === '777') {
-                const a = Math.floor(Math.random()*7)+1, b = Math.floor(Math.random()*7)+1, c = Math.floor(Math.random()*7)+1;
-                let reward = 0;
-                if (a===b && b===c) reward = 150;
-                else if (a===b || b===c || a===c) reward = 30;
-                result = { game: '777', reward: reward };
-                text = `🎰 ${a} | ${b} | ${c}: ${reward > 0 ? '+' + reward + ' ₽' : 'мимо'}`;
-            }
-
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('resultScreen').classList.remove('hidden');
-            document.getElementById('resultText').textContent = text;
-
-            // Отправляем результат боту (одноразово)
-            tg.sendData(JSON.stringify(result));
+        // --- НАВИГАЦИЯ ---
+        function openGame(game) {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('game-' + game).classList.remove('hidden');
         }
 
         function backToMenu() {
-            document.getElementById('resultScreen').classList.add('hidden');
-            document.getElementById('mainMenu').classList.remove('hidden');
+            document.querySelectorAll('.glass').forEach(el => el.classList.add('hidden'));
+            document.getElementById('menu').classList.remove('hidden');
+            resetGames();
         }
 
-        function closeApp() {
-            tg.close();
+        function closeApp() { tg.close(); }
+
+        function sendResult(game, win, text) {
+            tg.sendData(JSON.stringify({ game: game, win: win }));
+            // Небольшая вибрация для реалистичности
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function resetGames() {
+            // Рулетка
+            document.getElementById('wheel').style.transform = 'rotate(0deg)';
+            document.getElementById('roulette-result').innerText = '';
+            document.getElementById('spin-btn').disabled = false;
+            
+            // Ракета
+            const rocket = document.getElementById('rocket-icon');
+            rocket.style.bottom = '0px';
+            rocket.style.left = '20px';
+            rocket.innerText = '🚀';
+            document.getElementById('crash-text').style.opacity = '0';
+            document.getElementById('rocket-result').innerText = '';
+            document.getElementById('rocket-btn').disabled = false;
+
+            // Мины
+            document.getElementById('mines-grid').innerHTML = '';
+            document.getElementById('mines-result').innerText = '';
+            document.getElementById('mines-btn').disabled = false;
+        }
+
+        // --- РУЛЕТКА ЛОГИКА ---
+        let currentRotation = 0;
+        function spinRoulette() {
+            const btn = document.getElementById('spin-btn');
+            btn.disabled = true;
+            document.getElementById('roulette-result').innerText = '';
+
+            // Генерируем результат (0 - красное, 1 - черное, 2 - зеленое)
+            const rand = Math.random();
+            let win = false;
+            let text = '';
+            let targetDeg = 0;
+
+            if (rand < 0.47) {
+                // Красное (верхняя половина)
+                win = true;
+                text = "🔴 КРАСНОЕ! +30 ₽";
+                // Крутим так, чтобы стрелка попала в красное (0-180 градусов)
+                targetDeg = Math.floor(Math.random() * 170) + 5;
+            } else if (rand < 0.94) {
+                // Черное (нижняя половина)
+                win = true;
+                text = "⚫ ЧЁРНОЕ! +30 ₽";
+                // Крутим так, чтобы стрелка попала в черное (180-350)
+                targetDeg = Math.floor(Math.random() * 160) + 185;
+            } else {
+                // Зеленое (сектор 350-360)
+                win = false;
+                text = "🟢 ЗЕРО! -15 ₽";
+                targetDeg = 355;
+            }
+
+            // Добавляем обороты (5 полных кругов + нужный угол)
+            currentRotation += 360 * 5 + targetDeg;
+            
+            const wheel = document.getElementById('wheel');
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            // Ждем окончания анимации (4 секунды)
+            setTimeout(() => {
+                document.getElementById('roulette-result').innerText = text;
+                document.getElementById('roulette-result').style.color = win ? '#00ff00' : '#ff3333';
+                sendResult('roulette', win, text);
+                btn.disabled = false;
+            }, 4000);
+        }
+
+        // --- РАКЕТА ЛОГИКА ---
+        function playRocket() {
+            const btn = document.getElementById('rocket-btn');
+            btn.disabled = true;
+            document.getElementById('rocket-result').innerText = '';
+            
+            const rocket = document.getElementById('rocket-icon');
+            const crash = document.getElementById('crash-text');
+            
+            rocket.style.transition = 'none';
+            rocket.style.bottom = '0px';
+            rocket.style.left = '20px';
+            rocket.style.transform = 'rotate(0deg)';
+            
+            // Принудительный рефлоу
+            void rocket.offsetWidth; 
+
+            rocket.style.transition = 'bottom 2s ease-out, left 2s ease-out';
+            
+            // Летим вверх
+            rocket.style.bottom = '150px';
+            rocket.style.left = '200px';
+            rocket.style.transform = 'rotate(45deg)';
+
+            // Генерируем исход
+            const win = Math.random() < 0.45;
+
+            setTimeout(() => {
+                if (win) {
+                    document.getElementById('rocket-result').innerText = "🚀 УСПЕХ! +30 ₽";
+                    document.getElementById('rocket-result').style.color = '#00ff00';
+                    rocket.innerText = '🌟'; // Взлетела
+                } else {
+                    document.getElementById('rocket-result').innerText = "💥 КРАШ! -15 ₽";
+                    document.getElementById('rocket-result').style.color = '#ff3333';
+                    rocket.innerText = '💥'; // Взорвалась
+                    crash.style.opacity = '1';
+                }
+                sendResult('rocket', win, '');
+                btn.disabled = false;
+            }, 2000);
+        }
+
+        // --- МИНЫ ЛОГИКА ---
+        let minesActive = false;
+        let minesCount = 3; // Количество мин
+        let cellsOpened = 0;
+        let minePositions = [];
+
+        function startMines() {
+            const btn = document.getElementById('mines-btn');
+            btn.disabled = true;
+            minesActive = true;
+            cellsOpened = 0;
+            minePositions = [];
+            document.getElementById('mines-result').innerText = '';
+            
+            // Генерируем позиции мин (3 мины на 25 клеток)
+            while(minePositions.length < 3) {
+                const pos = Math.floor(Math.random() * 25);
+                if (!minePositions.includes(pos)) minePositions.push(pos);
+            }
+
+            // Рисуем сетку 5х5
+            const grid = document.getElementById('mines-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'mine-cell';
+                cell.innerText = '❓';
+                cell.onclick = () => openCell(i, cell);
+                grid.appendChild(cell);
+            }
+        }
+
+        function openCell(index, cell) {
+            if (!minesActive) return;
+
+            if (minePositions.includes(index)) {
+                // Попал на мину
+                cell.classList.add('revealed');
+                cell.innerText = '💣';
+                document.getElementById('mines-result').innerText = "💥 ВЗРЫВ! -15 ₽";
+                document.getElementById('mines-result').style.color = '#ff3333';
+                minesActive = false;
+                
+                // Открываем все мины
+                document.querySelectorAll('.mine-cell').forEach((c, i) => {
+                    if (minePositions.includes(i)) { c.classList.add('revealed'); c.innerText = '💣'; }
+                });
+                
+                sendResult('mines', false, '');
+                document.getElementById('mines-btn').disabled = false;
+
+            } else {
+                // Чистая клетка
+                cell.classList.add('revealed');
+                cell.innerText = '💎';
+                cellsOpened++;
+                
+                // Если открыл 3 чистые клетки - победа
+                if (cellsOpened >= 3) {
+                    document.getElementById('mines-result').innerText = "💎 ПОБЕДА! +45 ₽";
+                    document.getElementById('mines-result').style.color = '#00ff00';
+                    minesActive = false;
+                    sendResult('mines', true, '');
+                    document.getElementById('mines-btn').disabled = false;
+                }
+            }
         }
     </script>
 </body>
